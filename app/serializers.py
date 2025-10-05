@@ -1,5 +1,6 @@
 # app/serializers.py
 
+from django.conf import settings
 import pyvips
 from rest_framework import serializers
 from django.urls import reverse
@@ -67,7 +68,11 @@ class GalleryImageSerializer(serializers.ModelSerializer):
         model = Image
         fields = ['id', 'name', 'thumbnail']
 
+
 class ImageDetailSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для детальной информации об одном изображении.
+    """
     tileSource = serializers.SerializerMethodField()
     markers = serializers.SerializerMethodField()
 
@@ -76,11 +81,23 @@ class ImageDetailSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'tileSource', 'markers']
 
     def get_tileSource(self, obj):
+        # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+        # Вместо reverse() мы просто строим прямой URL к медиа-файлу.
+        # Django сам добавит хост и MEDIA_URL.
         request = self.context.get('request')
-        dzi_url = reverse('dzi-view', kwargs={'image_id': obj.id})
-        return request.build_absolute_uri(dzi_url) if request else dzi_url
+        
+        # Имя .dzi файла, которое создает process_image.py
+        dzi_filename = f'tiles/image_{obj.id}/image_{obj.id}.dzi'
+        
+        # Получаем полный URL
+        if request:
+            return request.build_absolute_uri(f'{settings.MEDIA_URL}{dzi_filename}')
+        
+        # Запасной вариант, если request недоступен
+        return f'{settings.MEDIA_URL}{dzi_filename}'
 
     def get_markers(self, obj):
+        # ... (этот метод остается без изменений) ...
         try:
             with pyvips.Image.new_from_file(obj.source_file.path) as img:
                 width, height = img.width, img.height
