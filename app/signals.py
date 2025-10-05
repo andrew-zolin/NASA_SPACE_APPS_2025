@@ -2,45 +2,55 @@
 
 import sys
 import subprocess
+from django.db import transaction  # <--- НОВЫЙ ИМПОРТ
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
 from .models import Image
-import tifffile  # <--- ИМПОРТИРУЕМ НОВУЮ БИБЛИОТЕКУ
+import tifffile
+
+def process_image_task(image_id):
+    """
+    Эта функция будет запущена ПОСЛЕ успешного сохранения.
+    Она содержит всю логику, которая раньше была в сигнале.
+    """
+    try:
+        instance = Image.objects.get(id=image_id)
+    except Image.DoesNotExist:
+        print(f"ОШИБКА: Не удалось найти Image с ID {image_id} для фоновой обработки.")
+        return
+
+    # Проверка TIFF файла
+    try:
+        with tifffile.TiffFile(instance.source_file.path) as tif:
+            print(f"Файл {instance.source_file.path} успешно открыт как TIFF для обработки.")
+    except Exception as e:
+        print(f"ОШИБКА: Файл {instance.source_file.path} не является валидным TIFF. Ошибка: {e}")
+        instance.status = 'FAILED'
+        instance.save()
+        return
+
+    # Запуск тяжелого процесса нарезки
+    command = [
+        sys.executable,
+        str(settings.BASE_DIR / "manage.py"),
+        "process_image",
+        str(instance.id)
+    ]
+    
+    print(f'Запуск фонового процесса: {" ".join(command)}')
+    subprocess.Popen(command)
+
 
 @receiver(post_save, sender=Image)
 def start_image_processing(sender, instance, created, **kwargs):
     """
-    Запускает команду нарезки в фоновом режиме.
+    Этот сигнал теперь ТОЛЬКО планирует запуск фоновой задачи.
     """
-    # Запускаем, только если объект новый И у него статус PENDING
     if created and instance.status == 'PENDING':
-        print(f'Сигнал получен: новый Image с ID {instance.id} создан.')
+        print(f'Сигнал получен для нового Image с ID {instance.id}. Планирую запуск обработки.')
         
-        # =================================================================
-        # НОВАЯ ПРОВЕРКА С ПОМОЩЬЮ TIFFFILE
-        # =================================================================
-        try:
-            # Попытаемся открыть файл. Если это не TIFF или он поврежден,
-            # библиотека вызовет исключение.
-            with tifffile.TiffFile(instance.source_file.path) as tif:
-                # Просто успешное открытие - это уже хорошая проверка
-                print(f"Файл {instance.source_file.path} успешно открыт как TIFF.")
-        except Exception as e:
-            print(f"ОШИБКА: Файл {instance.source_file.path} не является валидным TIFF. Ошибка: {e}")
-            # Помечаем изображение как ошибочное и прекращаем работу
-            instance.status = 'FAILED'
-            instance.save()
-            return # <-- ВАЖНО: выходим из функции
-        # =================================================================
-
-        # Если проверка прошла, запускаем тяжелый процесс нарезки
-        command = [
-            sys.executable,
-            str(settings.BASE_DIR / "manage.py"),
-            "process_image",
-            str(instance.id)
-        ]
-        
-        print(f'Запуск фонового процесса: {" ".join(command)}')
-        subprocess.Popen(command)
+        # --- ГЛАВНОЕ ИЗМЕНЕНИЕ ---
+        # Мы говорим Django: "Когда текущая транзакция (сохранение модели и файла)
+        # будет успешно завершена, вызови функцию process_image_task".
+        transaction.on_commit(lambda: process_image_task(instance.id))
