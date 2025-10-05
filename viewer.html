@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исследование изображения</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loader" class="full-page-loader">
+        <p>Загрузка данных изображения...</p>
+    </div>
+
+    <div id="openseadragon-viewer"></div>
+
+    <button id="add-marker-btn" title="Добавить новую метку" style="display: none;">+</button>
+
+    <!-- ВОТ ПОЛНАЯ И ПРАВИЛЬНАЯ СТРУКТУРА ПАНЕЛИ -->
+    <div id="info-panel">
+        <div class="panel-header">
+            <h2 id="panel-title">Название объекта</h2>
+            <button id="close-panel-btn" title="Закрыть">&times;</button>
+        </div>
+        <div class="panel-content">
+            <p id="panel-description">Здесь будет подробное описание...</p>
+            <div class="chat-section">
+                <h3>Обсуждение</h3>
+                <div id="chat-comments"></div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <form id="comment-form" action="javascript:void(0);">
+                <input id="comment-input" type="text" placeholder="Ваш комментарий..." required autocomplete="off">
+                <button type="submit">Отправить</button>
+            </form>
+        </div>
+    </div>
+    
+    <a href="index.html" class="back-link">← На главную</a>
+
+    <script src="https://cdn.jsdelivr.net/npm/openseadragon@3.1/build/openseadragon/openseadragon.min.js"></script>
+    <script src="api.js"></script>
+    <script src="viewer.js"></script>
+</body>
+</html>
