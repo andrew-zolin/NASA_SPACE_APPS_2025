@@ -52,7 +52,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://nice-dingo-amazingly.ngrok-free.app",
     "http://127.0.0.1:8000", 
     "http://localhost:8000",
-    "http://62.113.58.80:5757" 
+    "http://62.113.58.80:5757", 
     "http://62.113.58.80:5656" 
 ]
 CORS_ALLOW_CREDENTIALS = True
