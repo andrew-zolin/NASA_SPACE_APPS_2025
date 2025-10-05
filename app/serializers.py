@@ -33,9 +33,11 @@ class MarkerSerializer(serializers.ModelSerializer):
         model = PointOfInterest
         fields = ['id', 'x', 'y', 'title']
     def get_x(self, obj):
+        # Берем размеры из контекста, как и раньше
         width = self.context.get('image_width')
         if width: return obj.x / width
         return None
+
     def get_y(self, obj):
         height = self.context.get('image_height')
         if height: return obj.y / height
@@ -71,17 +73,18 @@ class ImageDetailSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(f'{settings.MEDIA_URL}{dzi_filename}')
         return f'{settings.MEDIA_URL}{dzi_filename}'
 
+
+
     def get_markers(self, obj):
-        try:
-            with pyvips.Image.new_from_file(obj.source_file.path) as img:
-                width, height = img.width, img.height
-        except Exception:
-            width, height = None, None
+        # УБИРАЕМ ОТКРЫТИЕ ФАЙЛА!
+        # Берем размеры напрямую из объекта Image
+        width = obj.width
+        height = obj.height
         
         context = self.context
         context.update({'image_width': width, 'image_height': height})
+        
         return MarkerSerializer(obj.points.all(), many=True, context=context).data
-
 
 class MarkerCreateSerializer(serializers.ModelSerializer):
     x = serializers.FloatField(write_only=True)
@@ -97,19 +100,21 @@ class MarkerCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         image = self.context['image']
-        # Убираем owner = context['request'].user
         
+        # "Вытаскиваем" нормализованные координаты
         normalized_x = validated_data.pop('x')
         normalized_y = validated_data.pop('y')
 
-        try:
-            with pyvips.Image.new_from_file(image.source_file.path) as img:
-                pixel_x = int(normalized_x * img.width)
-                pixel_y = int(normalized_y * img.height)
-        except Exception:
-            raise serializers.ValidationError("Не удалось обработать исходное изображение.")
+        if not image.width or not image.height:
+            raise serializers.ValidationError("Размеры исходного изображения не определены. Обработка еще не завершена.")
 
+        # ИСПОЛЬЗУЕМ переменные normalized_x и normalized_y
+        pixel_x = int(normalized_x * image.width)
+        pixel_y = int(normalized_y * image.height)
+
+        # Добавляем пиксельные координаты обратно в словарь для создания объекта
         validated_data['x'] = pixel_x
         validated_data['y'] = pixel_y
-        # Просто создаем объект со всеми валидированными данными
+        
+        # owner_name уже находится в validated_data, так как мы его не "вытаскивали"
         return PointOfInterest.objects.create(image=image, **validated_data)

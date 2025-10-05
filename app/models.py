@@ -33,6 +33,9 @@ class Image(models.Model):
         verbose_name="Превью"
     )
     
+    width = models.PositiveIntegerField(null=True, blank=True, verbose_name="Ширина (px)")
+    height = models.PositiveIntegerField(null=True, blank=True, verbose_name="Высота (px)")
+
     # Поле для загрузки файла. Файлы будут сохраняться в папку MEDIA_ROOT/images/
     source_file = models.FileField(upload_to='images/', verbose_name="Файл изображения (.tif)", null=True, blank=True)
     

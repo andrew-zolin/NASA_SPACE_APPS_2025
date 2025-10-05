@@ -33,6 +33,10 @@ class Command(BaseCommand):
         try:
             image = pyvips.Image.new_from_file(source_path)
 
+            image_width = image.width
+            image_height = image.height
+
+
             # --- Создание превью ---
             thumbnail_dir = os.path.join(settings.MEDIA_ROOT, 'thumbnails')
             os.makedirs(thumbnail_dir, exist_ok=True)
@@ -44,9 +48,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Превью сохранено в {thumbnail_path}'))
 
             # --- Вычисление максимального зума ---
-            max_dimension = max(image.width, image.height)
+            max_dimension = max(image_width, image_height) # Используем переменную
             max_zoom_level = math.ceil(math.log2(max_dimension / 256))
-            self.stdout.write(self.style.SUCCESS(f'Размеры: {image.width}x{image.height}. Макс. зум: {max_zoom_level}'))
+            self.stdout.write(self.style.SUCCESS(f'Размеры: {image_width}x{image_height}. Макс. зум: {max_zoom_level}'))
 
             # --- "Нормализация" изображения ---
             fd, temp_vips_file = tempfile.mkstemp(suffix='.v')
@@ -79,9 +83,12 @@ class Command(BaseCommand):
             # --- Финальное сохранение ---
             image_instance.status = 'COMPLETED'
             image_instance.max_zoom_level = max_zoom_level
+            # СОХРАНЯЕМ РАЗМЕРЫ В БАЗУ ДАННЫХ
+            image_instance.width = image_width
+            image_instance.height = image_height
             image_instance.save()
+            
             self.stdout.write(self.style.SUCCESS(f'Работа с "{image_instance.name}" полностью завершена. Статус: COMPLETED.'))
-
         except Exception as e:
             image_instance.status = 'FAILED'
             image_instance.save()
