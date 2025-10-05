@@ -207,24 +207,14 @@ UPSTASH_VECTOR_REST_TOKEN = os.getenv("UPSTASH_VECTOR_REST_TOKEN")
 UNFOLD = {
     "SITE_TITLE": "Space Apps Explorer",
     "SITE_HEADER": "Space Apps Explorer",
-    "SITE_URL": "/",
-    "THEME": "dark",  # 'light' или 'dark'
-    "SITE_SYMBOL": "speed",
-    # "SITE_ICON": lambda request: static("images/logo.svg"), # Путь к вашему логотипу
-    "SITE_FAVICONS": [ 
-        {
-            "rel": "icon",
-            "type": "image/svg+xml",
-            "href": lambda request: static("images/favicon.svg"), # Путь к вашему favicon
-        },
-    ],
+    "THEME": "dark",
 
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": False, # Мы определим свою навигацию
+        "show_all_applications": False,
         "navigation": [
             {
-                "title": "Контент",
+                "title": "Управление контентом",
                 "items": [
                     {
                         "title": "Изображения",
@@ -232,16 +222,10 @@ UNFOLD = {
                         "link": "admin:app_image_changelist",
                         "permission": lambda request: request.user.is_staff,
                     },
-                    {
-                        "title": "Объекты для поиска",
-                        "icon": "travel_explore",
-                        "link": "admin:app_searchableobject_changelist",
-                        "permission": lambda request: request.user.is_staff,
-                    },
                 ]
             },
             {
-                "title": "Пользовательский контент",
+                "title": "Активность пользователей",
                 "items": [
                     {
                         "title": "Точки интереса",
@@ -254,17 +238,6 @@ UNFOLD = {
                         "icon": "comment",
                         "link": "admin:app_comment_changelist",
                         "permission": lambda request: request.user.is_staff,
-                    },
-                ]
-            },
-            {
-                "title": "Система и AI",
-                "items": [
-                    {
-                        "title": "Взаимодействия с AI",
-                        "icon": "auto_awesome",
-                        "link": "admin:app_geminiinteraction_changelist",
-                        "permission": lambda request: request.user.is_superuser, # Только для суперпользователей
                     },
                 ]
             },
