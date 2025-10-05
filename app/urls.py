@@ -22,7 +22,7 @@ urlpatterns = [
     path('api/images/<int:image_id>/markers/', views.MarkerCreateView.as_view(), name='marker-create'),
     
     # Вспомогательный эндпоинт для DZI
-    path('dzi/<int:image_id>/', views.DziView.as_view(), name='dzi-view'),
+    # path('dzi/<int:image_id>/', views.DziView.as_view(), name='dzi-view'),
 ]
 
 if settings.DEBUG:

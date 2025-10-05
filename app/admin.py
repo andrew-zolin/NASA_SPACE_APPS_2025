@@ -6,19 +6,14 @@ from .models import Image, PointOfInterest, GeminiInteraction, SearchableObject,
 @admin.register(Image)
 class ImageAdmin(UnfoldModelAdmin):
     list_display = ('name', 'source_file', 'status', 'max_zoom_level', 'uploaded_at')
-    
-    # Добавляем max_zoom_level в поля только для чтения
     readonly_fields = ('uploaded_at', 'status', 'max_zoom_level') 
-    
     search_fields = ('name', 'description')
     list_filter = ('status',)
-    
     fieldsets = (
         (None, {
             'fields': ('name', 'description', 'source_file')
         }),
         ('Техническая информация', {
-            # Поле max_zoom_level теперь здесь, и оно будет отображаться, но не редактироваться
             'fields': ('max_zoom_level', 'source_url', 'status', 'uploaded_at')
         }),
     )
@@ -31,15 +26,15 @@ class CommentInline(UnfoldTabularInline):
 
 @admin.register(PointOfInterest)
 class PointOfInterestAdmin(UnfoldModelAdmin):
-    # Убрали инлайн для комментариев, добавили description
-    list_display = ('name', 'image', 'owner', 'created_at')
+    # Заменяем все упоминания 'owner' на 'owner_name'
+    list_display = ('name', 'image', 'owner_name', 'created_at')
     list_filter = ('image', 'created_at')
-    search_fields = ('name', 'owner__username', 'image__name')
-    autocomplete_fields = ('image', 'owner')
+    search_fields = ('name', 'owner_name', 'image__name')
+    autocomplete_fields = ('image',) # Убираем 'owner'
     readonly_fields = ('created_at',)
     fieldsets = (
         (None, {
-            'fields': ('name', 'image', 'owner', 'description')
+            'fields': ('name', 'image', 'owner_name', 'description')
         }),
         ('Координаты на изображении', {
             'fields': ('x', 'y')
@@ -47,9 +42,6 @@ class PointOfInterestAdmin(UnfoldModelAdmin):
     )
     inlines = [CommentInline]
 
-
-# Эти модели пока просто регистрируем, чтобы их можно было видеть в админке,
-# но основная логика для них отключена.
 @admin.register(SearchableObject)
 class SearchableObjectAdmin(UnfoldModelAdmin):
     list_display = ('name', 'object_type', 'image', 'created_at')

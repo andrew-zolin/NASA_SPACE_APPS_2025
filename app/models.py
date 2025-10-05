@@ -54,7 +54,7 @@ class Image(models.Model):
 # =====================================================================
 class PointOfInterest(models.Model):
     image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='points', verbose_name="Изображение")
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='points', verbose_name="Владелец")
+    owner_name = models.CharField(max_length=80, verbose_name="Имя автора", blank=True, null=True)
     x = models.BigIntegerField(verbose_name="Координата X")
     y = models.BigIntegerField(verbose_name="Координата Y")
     name = models.CharField(max_length=255, verbose_name="Название точки")
@@ -213,3 +213,5 @@ class SearchableObject(models.Model):
         verbose_name = "Объект для поиска"
         verbose_name_plural = "Объекты для поиска"
         ordering = ['-created_at']
+
+
