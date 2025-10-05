@@ -3,7 +3,7 @@
 // --- Конфигурация ---
 // Укажите здесь адрес вашего Django-сервера.
 // Судя по вашим логам, это http://127.0.0.1:5002
-const API_BASE_URL = 'http://127.0.0.1:5002';
+const API_BASE_URL = 'http://62.113.58.80:5757';
 
 // --- Вспомогательная функция для всех запросов ---
 async function apiRequest(endpoint, method = 'GET', body = null) {
