@@ -37,12 +37,12 @@ load_dotenv(ENV_FILE)
 SECRET_KEY = 'django-insecure-(w2s-c8!83gq#$pamy1wy^%pstv8=)ei0-2+mowkk*wed&czkm'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 # print(f"""{ALLOWED_HOSTS=}""")
 
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5002", "https://admin.lovinad.com/", "https://nice-dingo-amazingly.ngrok-free.app"]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5002", "https://admin.lovinad.com", "https://nice-dingo-amazingly.ngrok-free.app"]
 # print(f"""{CSRF_TRUSTED_ORIGINS=}""")
 
 # CORS settings
