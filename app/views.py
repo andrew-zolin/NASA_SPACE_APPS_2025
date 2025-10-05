@@ -78,15 +78,3 @@ class MarkerCreateView(generics.CreateAPIView):
         headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-# --- Вспомогательный View для DZI ---
-class DziView(APIView):
-    def get(self, request, image_id):
-        dzi_filename = f'image_{image_id}.dzi'
-        # ПРАВИЛЬНО: ищет файл прямо в папке tiles
-        dzi_path = os.path.join(settings.MEDIA_ROOT, 'tiles', dzi_filename)
-        
-        if not os.path.exists(dzi_path):
-            return Http404("DZI file not found")
-            
-        with open(dzi_path, 'rb') as f:
-            return HttpResponse(f.read(), content_type='application/xml')
