@@ -13,9 +13,8 @@
 
     <div id="openseadragon-viewer"></div>
 
-    <button id="add-marker-btn" title="Добавить новую метку" style="display: none;">+</button>
+    <button id="add-marker-btn" class="viewer-button" title="Добавить новую метку" style="display: none;">+</button>
 
-    <!-- ВОТ ПОЛНАЯ И ПРАВИЛЬНАЯ СТРУКТУРА ПАНЕЛИ -->
     <div id="info-panel">
         <div class="panel-header">
             <h2 id="panel-title">Название объекта</h2>
@@ -36,7 +35,15 @@
         </div>
     </div>
     
-    <a href="index.html" class="back-link">← На главную</a>
+    <a href="index.html" class="viewer-button back-link">← На главную</a>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal" class="modal">
+            <h2 id="modal-title">Заголовок</h2>
+            <div id="modal-content" class="modal-content"></div>
+            <div id="modal-footer" class="modal-footer"></div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/openseadragon@3.1/build/openseadragon/openseadragon.min.js"></script>
     <script src="api.js"></script>

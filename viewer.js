@@ -1,7 +1,7 @@
-// Ждем, пока весь HTML-документ будет готов
+// viewer.js
+
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- Получаем все DOM-элементы ОДИН РАЗ в начале ---
     const dom = {
         loader: document.getElementById('loader'),
         viewerContainer: document.getElementById('openseadragon-viewer'),
@@ -13,50 +13,190 @@ document.addEventListener('DOMContentLoaded', () => {
         chatComments: document.getElementById('chat-comments'),
         commentForm: document.getElementById('comment-form'),
         commentInput: document.getElementById('comment-input'),
+        // Новые элементы для модального окна
+        modalOverlay: document.getElementById('modal-overlay'),
+        modal: document.getElementById('modal'),
+        modalTitle: document.getElementById('modal-title'),
+        modalContent: document.getElementById('modal-content'),
+        modalFooter: document.getElementById('modal-footer'),
     };
 
-    // --- Состояние приложения ---
     const state = {
-        viewer: null,
-        imageId: null,
-        markers: [],
-        isAddMarkerMode: false,
-        chatPollInterval: null,
-        currentOpenMarkerId: null,
+        viewer: null, imageId: null, markers: [],
+        isAddMarkerMode: false, chatPollInterval: null, currentOpenMarkerId: null,
     };
 
-    // --- ГЛАВНАЯ ФУНКЦИЯ ---
+    let guestUserName = localStorage.getItem('guestUserName');
+
+    // --- НОВАЯ СИСТЕМА МОДАЛЬНЫХ ОКОН ---
+
+    /**
+     * Показывает кастомное модальное окно.
+     * @param {object} config - Конфигурация
+     * @param {string} config.title - Заголовок окна
+     * @param {string} config.content - HTML-содержимое для тела окна (например, инпуты)
+     * @param {object[]} config.buttons - Массив кнопок
+     * @returns {Promise<object|null>} - Промис, который разрешается с данными формы или null при отмене.
+     */
+    function showModal({ title, content, buttons }) {
+        return new Promise((resolve) => {
+            dom.modalTitle.textContent = title;
+            dom.modalContent.innerHTML = content;
+            dom.modalFooter.innerHTML = '';
+
+            buttons.forEach(buttonConfig => {
+                const button = document.createElement('button');
+                button.textContent = buttonConfig.text;
+                button.className = `modal-button ${buttonConfig.class}`;
+                button.addEventListener('click', () => {
+                    let result = null;
+                    if (buttonConfig.value === 'submit') {
+                        const form = dom.modal.querySelector('form');
+                        const formData = new FormData(form);
+                        result = Object.fromEntries(formData.entries());
+                    }
+                    closeModal();
+                    resolve(result);
+                }, { once: true });
+                dom.modalFooter.appendChild(button);
+            });
+
+            dom.modalOverlay.classList.add('visible');
+            const firstInput = dom.modal.querySelector('input, textarea');
+            if (firstInput) firstInput.focus();
+        });
+    }
+
+    function closeModal() {
+        dom.modalOverlay.classList.remove('visible');
+    }
+    
+    async function showAlert(message) {
+        await showModal({
+            title: "Уведомление",
+            content: `<p>${message}</p>`,
+            buttons: [{ text: "OK", class: "primary", value: "ok" }]
+        });
+    }
+
+    // --- ОБНОВЛЕННЫЕ ФУНКЦИИ ---
+
+    async function ensureUserName() {
+        if (guestUserName) return guestUserName;
+
+        const result = await showModal({
+            title: "Добро пожаловать!",
+            content: `
+                <form id="modal-form">
+                    <div class="form-group">
+                        <label for="username">Введите ваше имя для участия в обсуждениях:</label>
+                        <input type="text" id="username" name="username" required autocomplete="off">
+                    </div>
+                </form>
+            `,
+            buttons: [
+                { text: "Сохранить", class: "primary", value: "submit" }
+            ]
+        });
+
+        if (result && result.username) {
+            guestUserName = result.username.trim();
+            localStorage.setItem('guestUserName', guestUserName);
+            return guestUserName;
+        }
+        return null;
+    }
+
+    async function addNewMarker(pixelPosition) {
+        toggleAddMarkerMode(true); // Сразу выключаем режим добавления
+        
+        const userName = await ensureUserName();
+        if (!userName) return;
+
+        const result = await showModal({
+            title: "Добавить новую метку",
+            content: `
+                <form id="modal-form">
+                    <div class="form-group">
+                        <label for="marker-title">Название</label>
+                        <input type="text" id="marker-title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="marker-desc">Описание</label>
+                        <textarea id="marker-desc" name="description"></textarea>
+                    </div>
+                </form>
+            `,
+            buttons: [
+                { text: "Отмена", class: "secondary", value: "cancel" },
+                { text: "Сохранить", class: "primary", value: "submit" }
+            ]
+        });
+
+        if (!result) return; // Пользователь нажал "Отмена"
+
+        const viewportPoint = state.viewer.viewport.pointFromPixel(pixelPosition);
+        const newMarkerData = {
+            title: result.title,
+            description: result.description || "",
+            x: viewportPoint.x,
+            y: viewportPoint.y,
+            user: userName
+        };
+
+        try {
+            const createdMarker = await api.postNewMarker(state.imageId, newMarkerData);
+            state.markers.push(createdMarker);
+            renderMarker(createdMarker);
+        } catch (error) {
+            console.error("Ошибка добавления маркера:", error);
+            await showAlert("Не удалось сохранить метку. Попробуйте снова.");
+        }
+    }
+
+    async function handlePostComment(event) {
+        event.preventDefault();
+        const text = dom.commentInput.value;
+        if (text.trim() === '' || !state.currentOpenMarkerId) return;
+
+        const userName = await ensureUserName();
+        if (!userName) return;
+
+        dom.commentInput.disabled = true;
+        try {
+            await api.postChatMessage(state.currentOpenMarkerId, userName, text);
+        } catch (error) {
+            await showAlert("Ошибка отправки сообщения. Попробуйте снова.");
+        } finally {
+            dom.commentInput.value = '';
+            dom.commentInput.disabled = false;
+        }
+    }
+
+    // --- Остальные функции (без изменений) ---
+    // ... (вставьте сюда все остальные функции из вашего viewer.js: main, setupEventHandlers, handleCanvasClick, и т.д.) ...
+    
     async function main() {
         console.log("Viewer Main: Запуск инициализации...");
         document.body.classList.add('viewer-page');
-
-        // 1. Получаем ID из URL
         const params = new URLSearchParams(window.location.search);
         state.imageId = params.get('id');
         if (!state.imageId) {
-            alert("Ошибка: ID изображения не найден.");
             window.location.href = 'index.html';
             return;
         }
-
         try {
-            // 2. Загружаем данные с API
             const imageData = await api.fetchImageById(state.imageId);
             console.log("Viewer Main: Данные изображения получены", imageData);
             state.markers = imageData.markers;
             document.title = imageData.name;
-
-            // 3. Инициализируем OpenSeadragon
             state.viewer = OpenSeadragon({
                 id: "openseadragon-viewer",
                 prefixUrl: "https://cdn.jsdelivr.net/npm/openseadragon@3.1/build/openseadragon/images/",
                 tileSources: imageData.tileSource,
                 gestureSettingsMouse: { clickToZoom: false }
             });
-
-            // 4. После инициализации OSD, настраиваем все обработчики
             setupEventHandlers();
-
         } catch (error) {
             console.error("Критическая ошибка при инициализации:", error);
             dom.loader.innerHTML = `<p class="error">Не удалось загрузить данные. <a href="index.html">На главную</a></p>`;
@@ -64,37 +204,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupEventHandlers() {
-        // OSD готов, тайлы загружены - рендерим маркеры и скрываем лоадер
         state.viewer.addHandler('open', () => {
             console.log("OSD Event: 'open' - рендерим маркеры");
             renderAllMarkers();
             dom.loader.style.display = 'none';
             dom.addMarkerBtn.style.display = 'block';
         });
-
-        // Единый обработчик кликов по холсту
         state.viewer.addHandler('canvas-click', handleCanvasClick);
-
-        // Обработчики для кнопок и форм
         dom.addMarkerBtn.addEventListener('click', () => toggleAddMarkerMode());
         dom.closePanelBtn.addEventListener('click', closeMarkerPanel);
         dom.commentForm.addEventListener('submit', handlePostComment);
     }
 
     function handleCanvasClick(event) {
-        console.log("Canvas Clicked. Режим добавления:", state.isAddMarkerMode);
         if (state.isAddMarkerMode) {
             addNewMarker(event.position);
         } else {
             const marker = findClickedMarker(event.position);
-            if (marker) {
-                openMarkerPanel(marker);
-            }
+            if (marker) openMarkerPanel(marker);
         }
     }
     
-    // Остальные функции (без изменений в логике, но используют новые переменные `dom` и `state`)
-    // ... (полный код этих функций приведен ниже для целостности) ...
     function findClickedMarker(clickPosition) {
         const clickThreshold = 20;
         for (const marker of state.markers) {
@@ -106,54 +236,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function openMarkerPanel(marker) {
         if (state.currentOpenMarkerId === marker.id && dom.infoPanel.classList.contains('visible')) return;
-        console.log("Открытие панели для маркера:", marker.id);
-        
         state.currentOpenMarkerId = marker.id;
         dom.panelTitle.textContent = marker.title;
         dom.panelDescription.textContent = "Загрузка...";
         dom.chatComments.innerHTML = '';
         dom.infoPanel.classList.add('visible');
-
         if (state.chatPollInterval) clearInterval(state.chatPollInterval);
         
-        const details = await api.fetchMarkerDetails(marker.id);
-        dom.panelDescription.textContent = details.description;
-        updateChatView(details.chat);
-        
-        state.chatPollInterval = setInterval(async () => {
-            const updatedDetails = await api.fetchMarkerDetails(marker.id);
-            updateChatView(updatedDetails.chat);
-        }, 5000);
+        const fetchAndUpdate = async () => {
+            try {
+                const details = await api.fetchMarkerDetails(marker.id);
+                if (marker.id === state.currentOpenMarkerId) { // Проверяем, не закрыли ли панель
+                    dom.panelDescription.textContent = details.description;
+                    updateChatView(details.chat);
+                }
+            } catch (error) {
+                console.error("Ошибка обновления деталей маркера:", error);
+                if (marker.id === state.currentOpenMarkerId) {
+                    dom.panelDescription.textContent = "Ошибка загрузки.";
+                }
+                clearInterval(state.chatPollInterval);
+            }
+        };
+
+        await fetchAndUpdate();
+        state.chatPollInterval = setInterval(fetchAndUpdate, 5000);
     }
 
     function closeMarkerPanel() {
         dom.infoPanel.classList.remove('visible');
         if (state.chatPollInterval) clearInterval(state.chatPollInterval);
         state.currentOpenMarkerId = null;
-    }
-
-    async function handlePostComment(event) {
-        event.preventDefault();
-        const text = dom.commentInput.value;
-        if (text.trim() === '' || !state.currentOpenMarkerId) return;
-        dom.commentInput.disabled = true;
-        await api.postChatMessage(state.currentOpenMarkerId, text);
-        dom.commentInput.value = '';
-        dom.commentInput.disabled = false;
-        // Чат обновится при следующем поллинге
-    }
-    
-    async function addNewMarker(pixelPosition) {
-        const viewportPoint = state.viewer.viewport.pointFromPixel(pixelPosition);
-        const title = prompt("Название метки:");
-        if (!title) { toggleAddMarkerMode(true); return; }
-        const description = prompt("Описание:");
-
-        const newMarkerData = { x: viewportPoint.x, y: viewportPoint.y, title, description };
-        const createdMarker = await api.postNewMarker(state.imageId, newMarkerData);
-        state.markers.push(createdMarker);
-        renderMarker(createdMarker);
-        toggleAddMarkerMode(true);
     }
     
     function renderAllMarkers() {
@@ -168,21 +281,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateChatView(chatMessages) {
-        if (dom.chatComments.children.length === chatMessages.length) return;
+        const currentMessages = Array.from(dom.chatComments.children).map(c => c.textContent).join();
+        const newMessages = chatMessages.map(m => `${m.user}:${m.text}`).join();
+        if (currentMessages === newMessages) return;
+
         dom.chatComments.innerHTML = '';
-        chatMessages.forEach(msg => addCommentToChatView(msg.user, msg.text));
+        if (chatMessages.length === 0) {
+            dom.chatComments.innerHTML = '<p>Обсуждений пока нет.</p>';
+        } else {
+            chatMessages.forEach(msg => addCommentToChatView(msg.user, msg.text));
+        }
     }
 
     function addCommentToChatView(user, text) {
+        if(dom.chatComments.querySelector('p')) dom.chatComments.innerHTML = '';
+    
         const commentEl = document.createElement('div');
         commentEl.className = 'comment';
-        const userEl = document.createElement('b');
-        userEl.textContent = `${user}:`;
-        commentEl.appendChild(userEl);
-        commentEl.append(` ${text}`);
+    
+        const authorEl = document.createElement('span');
+        authorEl.className = 'comment-author';
+        authorEl.textContent = user;
+    
+        const textEl = document.createElement('span');
+        textEl.className = 'comment-text';
+        textEl.textContent = text;
+    
+        commentEl.appendChild(authorEl);
+        commentEl.appendChild(textEl);
         dom.chatComments.appendChild(commentEl);
     }
-    
+        
     function toggleAddMarkerMode(forceOff = false) {
         state.isAddMarkerMode = forceOff ? false : !state.isAddMarkerMode;
         if (state.isAddMarkerMode) {
@@ -196,6 +325,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- ЗАПУСК ---
     main();
 });
