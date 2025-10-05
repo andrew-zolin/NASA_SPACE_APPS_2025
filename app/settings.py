@@ -54,7 +54,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://62.113.58.80:5757", 
     "http://62.113.58.80:5656",
-    "https://admin.lovinad.com/" 
+    "https://admin.lovinad.com" 
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
