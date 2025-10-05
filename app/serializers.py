@@ -87,16 +87,18 @@ class ImageDetailSerializer(serializers.ModelSerializer):
         return MarkerSerializer(obj.points.all(), many=True, context=context).data
 
 
+
+
 class MarkerCreateSerializer(serializers.ModelSerializer):
     x = serializers.FloatField(write_only=True)
     y = serializers.FloatField(write_only=True)
     title = serializers.CharField(source='name')
-    # Добавляем поле для имени автора
+    # Убедитесь, что это поле есть
     user = serializers.CharField(max_length=80, source='owner_name')
     
     class Meta:
         model = PointOfInterest
-        # Добавляем 'user' в список полей
+        # Убедитесь, что 'user' есть в списке полей
         fields = ['title', 'description', 'x', 'y', 'user']
 
     def create(self, validated_data):
@@ -106,7 +108,7 @@ class MarkerCreateSerializer(serializers.ModelSerializer):
         normalized_y = validated_data.pop('y')
 
         if not image.width or not image.height:
-            raise serializers.ValidationError("Размеры исходного изображения не определены. Обработка еще не завершена.")
+            raise serializers.ValidationError("Размеры изображения не определены.")
 
         pixel_x = int(normalized_x * image.width)
         pixel_y = int(normalized_y * image.height)
@@ -114,5 +116,5 @@ class MarkerCreateSerializer(serializers.ModelSerializer):
         validated_data['x'] = pixel_x
         validated_data['y'] = pixel_y
         
-        # Просто создаем объект со всеми валидированными данными
+        # Убедитесь, что здесь нет обращения к 'owner' или 'request.user'
         return PointOfInterest.objects.create(image=image, **validated_data)
