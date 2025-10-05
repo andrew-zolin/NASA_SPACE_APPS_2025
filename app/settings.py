@@ -49,7 +49,9 @@ CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5002", "https://nice-dingo-amazingly.n
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5002",
-    "https://nice-dingo-amazingly.ngrok-free.app"
+    "https://nice-dingo-amazingly.ngrok-free.app",
+    "http://127.0.0.1:8000", 
+    "http://localhost:8000" 
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -79,6 +81,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -190,12 +193,12 @@ CLOUDFLARE_BUCKET = os.getenv("CLOUDFLARE_BUCKET")
 UPSTASH_VECTOR_REST_URL = os.getenv("UPSTASH_VECTOR_REST_URL")
 UPSTASH_VECTOR_REST_TOKEN = os.getenv("UPSTASH_VECTOR_REST_TOKEN")
 
-google_creds_path_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", str(BASE_DIR / "secrets/lovinad-53c3a36409cd.json"))
-if Path(google_creds_path_str).exists():
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = google_creds_path_str
-else:
-    # В реальном продакшене здесь лучше вызывать критическую ошибку или использовать IAM-роли
-    print(f"WARNING: Google credentials file not found at {google_creds_path_str}", file=sys.stderr)
+# google_creds_path_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", str(BASE_DIR / "secrets/lovinad-53c3a36409cd.json"))
+# if Path(google_creds_path_str).exists():
+#     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = google_creds_path_str
+# else:
+#     # В реальном продакшене здесь лучше вызывать критическую ошибку или использовать IAM-роли
+#     print(f"WARNING: Google credentials file not found at {google_creds_path_str}", file=sys.stderr)
 
 
 UNFOLD = {
