@@ -42,7 +42,7 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 # print(f"""{ALLOWED_HOSTS=}""")
 
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5002", "https://nice-dingo-amazingly.ngrok-free.app"]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5002", "https://admin.lovinad.com/", "https://nice-dingo-amazingly.ngrok-free.app"]
 # print(f"""{CSRF_TRUSTED_ORIGINS=}""")
 
 # CORS settings
@@ -54,6 +54,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://62.113.58.80:5757", 
     "http://62.113.58.80:5656" 
+    "https://admin.lovinad.com/" 
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
