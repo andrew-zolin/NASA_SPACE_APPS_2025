@@ -18,6 +18,7 @@ import sentry_sdk
 from django.core.management.utils import get_random_secret_key
 from django.templatetags.static import static
 from dotenv import load_dotenv
+from django.urls import reverse_lazy
 
 ######################################################################
 # General
@@ -173,7 +174,8 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
+# STATICFILES_DIRS = [BASE_DIR / "app" / "static"]
+STATICFILES_DIRS = []
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -204,6 +206,7 @@ UPSTASH_VECTOR_REST_TOKEN = os.getenv("UPSTASH_VECTOR_REST_TOKEN")
 #     print(f"WARNING: Google credentials file not found at {google_creds_path_str}", file=sys.stderr)
 
 
+
 UNFOLD = {
     "SITE_TITLE": "Space Apps Explorer",
     "SITE_HEADER": "Space Apps Explorer",
@@ -219,7 +222,7 @@ UNFOLD = {
                     {
                         "title": "Изображения",
                         "icon": "photo_library",
-                        "link": "admin:app_image_changelist",
+                        "link": reverse_lazy("admin:app_image_changelist"),
                         "permission": lambda request: request.user.is_staff,
                     },
                 ]
@@ -230,13 +233,13 @@ UNFOLD = {
                     {
                         "title": "Точки интереса",
                         "icon": "fmd_good",
-                        "link": "admin:app_pointofinterest_changelist",
+                        "link": reverse_lazy("admin:app_pointofinterest_changelist"),
                         "permission": lambda request: request.user.is_staff,
                     },
                     {
                         "title": "Комментарии",
                         "icon": "comment",
-                        "link": "admin:app_comment_changelist",
+                        "link": reverse_lazy("admin:app_comment_changelist"),
                         "permission": lambda request: request.user.is_staff,
                     },
                 ]
@@ -247,13 +250,13 @@ UNFOLD = {
                     {
                         "title": "Пользователи",
                         "icon": "group",
-                        "link": "admin:auth_user_changelist",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
                         "permission": lambda request: request.user.is_superuser,
                     },
                     {
                         "title": "Группы",
                         "icon": "shield",
-                        "link": "admin:auth_group_changelist",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
                         "permission": lambda request: request.user.is_superuser,
                     },
                 ]
