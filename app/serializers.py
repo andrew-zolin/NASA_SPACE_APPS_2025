@@ -87,34 +87,35 @@ class ImageDetailSerializer(serializers.ModelSerializer):
         return MarkerSerializer(obj.points.all(), many=True, context=context).data
 
 
-
-
 class MarkerCreateSerializer(serializers.ModelSerializer):
     x = serializers.FloatField(write_only=True)
     y = serializers.FloatField(write_only=True)
     title = serializers.CharField(source='name')
-    # Убедитесь, что это поле есть
+    # Принимаем 'user' от фронтенда и связываем его с полем 'owner_name'
     user = serializers.CharField(max_length=80, source='owner_name')
     
     class Meta:
         model = PointOfInterest
-        # Убедитесь, что 'user' есть в списке полей
         fields = ['title', 'description', 'x', 'y', 'user']
 
     def create(self, validated_data):
         image = self.context['image']
         
+        # "Вытаскиваем" нормализованные координаты
         normalized_x = validated_data.pop('x')
         normalized_y = validated_data.pop('y')
 
         if not image.width or not image.height:
-            raise serializers.ValidationError("Размеры изображения не определены.")
+            raise serializers.ValidationError("Размеры исходного изображения не определены. Обработка еще не завершена.")
 
+        # Используем переменные normalized_x и normalized_y
         pixel_x = int(normalized_x * image.width)
         pixel_y = int(normalized_y * image.height)
 
+        # Добавляем пиксельные координаты обратно в словарь для создания объекта
         validated_data['x'] = pixel_x
         validated_data['y'] = pixel_y
         
-        # Убедитесь, что здесь нет обращения к 'owner' или 'request.user'
+        # owner_name уже находится в validated_data, так как мы его не "вытаскивали".
+        # Просто создаем объект со всеми полученными и обработанными данными.
         return PointOfInterest.objects.create(image=image, **validated_data)
