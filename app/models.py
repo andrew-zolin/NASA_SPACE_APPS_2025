@@ -8,27 +8,37 @@ from django.contrib.auth.models import User
 # Сами тайлы изображений хранятся в Cloudflare R2.
 # =====================================================================
 class Image(models.Model):
-    name = models.CharField(
-        max_length=255,
-        unique=True,
-        verbose_name="Название"
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Ожидает нарезки'),
+        ('PROCESSING', 'В процессе нарезки'),
+        ('COMPLETED', 'Нарезка завершена'),
+        ('FAILED', 'Ошибка нарезки'),
+    ]
+
+    name = models.CharField(max_length=255, unique=True, verbose_name="Название")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING',
+        verbose_name="Статус нарезки"
     )
-    description = models.TextField(
-        blank=True,
-        verbose_name="Описание"
+
+    thumbnail = models.ImageField(
+        upload_to='thumbnails/', 
+        null=True, 
+        blank=True, 
+        verbose_name="Превью"
     )
-    max_zoom_level = models.PositiveIntegerField(
-        verbose_name="Максимальный уровень зума"
-    )
-    source_url = models.URLField(
-        max_length=512,
-        blank=True,
-        verbose_name="URL источника"
-    )
-    uploaded_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата загрузки"
-    )
+    
+    # Поле для загрузки файла. Файлы будут сохраняться в папку MEDIA_ROOT/images/
+    source_file = models.FileField(upload_to='images/', verbose_name="Файл изображения (.tif)", null=True, blank=True)
+    
+    max_zoom_level = models.PositiveIntegerField(verbose_name="Максимальный уровень зума", null=True, blank=True)
+    source_url = models.URLField(max_length=512, blank=True, verbose_name="URL источника")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
 
     def __str__(self):
         return self.name
@@ -43,32 +53,16 @@ class Image(models.Model):
 # Точка, созданная пользователем на конкретном изображении для обсуждения.
 # =====================================================================
 class PointOfInterest(models.Model):
-    image = models.ForeignKey(
-        Image,
-        on_delete=models.CASCADE,
-        related_name='points',
-        verbose_name="Изображение"
-    )
-    owner = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='points',
-        verbose_name="Владелец"
-    )
-    x = models.BigIntegerField(
-        verbose_name="Координата X"
-    )
-    y = models.BigIntegerField(
-        verbose_name="Координата Y"
-    )
-    name = models.CharField(
-        max_length=255,
-        verbose_name="Название точки"
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата создания"
-    )
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='points', verbose_name="Изображение")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='points', verbose_name="Владелец")
+    x = models.BigIntegerField(verbose_name="Координата X")
+    y = models.BigIntegerField(verbose_name="Координата Y")
+    name = models.CharField(max_length=255, verbose_name="Название точки")
+    
+    # Поле для простой заметки/описания
+    description = models.TextField(blank=True, verbose_name="Заметка")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     def __str__(self):
         return f'"{self.name}" на изображении "{self.image.name}"'
@@ -90,15 +84,20 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name="Точка интереса"
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name="Автор"
+    
+    # ЗАМЕНЯЕМ ForeignKey НА CharField
+    author_name = models.CharField(
+        max_length=80, 
+        blank=False, 
+        null=False, 
+        verbose_name="Имя автора"
     )
+    
     text = models.TextField(
         verbose_name="Текст комментария"
     )
+    
+    # parent_comment можно оставить, если в будущем захотите вложенные ответы
     parent_comment = models.ForeignKey(
         'self',
         null=True,
@@ -113,7 +112,7 @@ class Comment(models.Model):
     )
 
     def __str__(self):
-        return f'Комментарий от {self.author.username} к {self.point.name}'
+        return f'Комментарий от {self.author_name} к {self.point.name}'
 
     class Meta:
         verbose_name = "Комментарий"

@@ -144,5 +144,6 @@ zipp==3.21.0
 zstandard==0.23.0
 djangorestframework
 upstash-vector
+pyvips
+tifffile  
 
-  
