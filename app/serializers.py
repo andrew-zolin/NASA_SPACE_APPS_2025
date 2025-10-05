@@ -86,6 +86,7 @@ class ImageDetailSerializer(serializers.ModelSerializer):
         
         return MarkerSerializer(obj.points.all(), many=True, context=context).data
 
+
 class MarkerCreateSerializer(serializers.ModelSerializer):
     x = serializers.FloatField(write_only=True)
     y = serializers.FloatField(write_only=True)
@@ -101,20 +102,17 @@ class MarkerCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         image = self.context['image']
         
-        # "Вытаскиваем" нормализованные координаты
         normalized_x = validated_data.pop('x')
         normalized_y = validated_data.pop('y')
 
         if not image.width or not image.height:
             raise serializers.ValidationError("Размеры исходного изображения не определены. Обработка еще не завершена.")
 
-        # ИСПОЛЬЗУЕМ переменные normalized_x и normalized_y
         pixel_x = int(normalized_x * image.width)
         pixel_y = int(normalized_y * image.height)
 
-        # Добавляем пиксельные координаты обратно в словарь для создания объекта
         validated_data['x'] = pixel_x
         validated_data['y'] = pixel_y
         
-        # owner_name уже находится в validated_data, так как мы его не "вытаскивали"
+        # Просто создаем объект со всеми валидированными данными
         return PointOfInterest.objects.create(image=image, **validated_data)

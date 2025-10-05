@@ -60,6 +60,7 @@ class ChatMessageCreateView(generics.CreateAPIView):
 # 5. API для создания нового маркера
 class MarkerCreateView(generics.CreateAPIView):
     serializer_class = MarkerCreateSerializer
+    # ЗАМЕНЯЕМ IsAuthenticated НА AllowAny
     permission_classes = [permissions.AllowAny]
 
     def get_serializer_context(self):
